@@ -1,0 +1,101 @@
+@host = http://localhost:8089
+@contentType = application/json
+
+@customerId = 1
+@carId = 1
+@repairOrderId = 1
+
+### Create customer
+POST {{host}}/api/customers
+Content-Type: {{contentType}}
+
+{
+  "firstName": "Test",
+  "lastName": "Customer"
+}
+
+### Create car
+POST {{host}}/api/cars
+Content-Type: {{contentType}}
+
+{
+  "year": 2020,
+  "make": "Toyota",
+  "model": "Camry",
+  "customerId": {{customerId}}
+}
+
+### Create repair order
+POST {{host}}/api/repair-orders
+Content-Type: {{contentType}}
+
+{
+  "customerId": {{customerId}},
+  "carId": {{carId}},
+  "mechanicNotes": "Customer reports a grinding noise while braking."
+}
+
+### Get all repair orders
+GET {{host}}/api/repair-orders
+
+### Get repair order by ID
+GET {{host}}/api/repair-orders/{{repairOrderId}}
+
+### Get repair orders by car
+GET {{host}}/api/cars/{{carId}}/repairOrders
+
+### Get repair orders by customer
+GET {{host}}/api/customers/{{customerId}}/repairOrders
+
+### Set diagnosing
+PATCH {{host}}/api/repairOrder/{{repairOrderId}}/diagnosing
+
+### Set waiting for approval
+PATCH {{host}}/api/repairOrder/{{repairOrderId}}/waiting-for-approval
+
+### Set waiting for parts
+PATCH {{host}}/api/repairOrder/{{repairOrderId}}/waiting-for-parts
+
+### Set in progress
+PATCH {{host}}/api/repairOrder/{{repairOrderId}}/in-progress
+
+### Complete
+PATCH {{host}}/api/repair-orders/{{repairOrderId}}/complete
+
+### Cancel
+PATCH {{host}}/api/repairOrder/{{repairOrderId}}/cancelled
+
+### Error: missing repair order
+GET {{host}}/api/repair-orders/999999
+
+### Error: missing customer
+POST {{host}}/api/repair-orders
+Content-Type: {{contentType}}
+
+{
+  "customerId": 999999,
+  "carId": {{carId}},
+  "mechanicNotes": "Expected customer-not-found error."
+}
+
+### Error: missing car
+POST {{host}}/api/repair-orders
+Content-Type: {{contentType}}
+
+{
+  "customerId": {{customerId}},
+  "carId": 999999,
+  "mechanicNotes": "Expected car-not-found error."
+}
+
+### Error: same status twice
+PATCH {{host}}/api/repairOrder/{{repairOrderId}}/diagnosing
+
+### Run immediately after the request above
+PATCH {{host}}/api/repairOrder/{{repairOrderId}}/diagnosing
+
+### Delete — run last
+DELETE {{host}}/api/repair-orders/{{repairOrderId}}
+
+### Confirm deletion
+GET {{host}}/api/repair-orders/{{repairOrderId}}

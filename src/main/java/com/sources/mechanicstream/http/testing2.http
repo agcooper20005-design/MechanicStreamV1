@@ -1,0 +1,44 @@
+@host = http://localhost:8089
+
+
+### TESTING RECORDS
+POST {{host}}/api/repair-orders
+Content-Type: application/json
+
+{
+  "customerId": 1,
+  "carId": 1,
+  "mechanicNotes": "CAR IS NOT FUNCTIONAL"
+}
+
+###GET ALL REPAIRORDERS
+GET {{host}}/api/repair-orders
+
+
+
+###Complete Repair Order
+PATCH {{host}}/api/repair-orders/2/complete
+Content-Type: application/json
+
+###Cancel Repair Order
+PATCH {{host}}/api/repairOrder/4/cancelled
+
+###DELETE ORDER
+DELETE {{host}}/api/repair-orders/1
+
+
+### GET
+GET {{host}}/api/repair-orders/2/parts
+
+###Testing Create a apart
+POST {{host}}/api/repair-orders/2/parts
+Content-Type: application/json
+
+{
+  "partCondition": "NEW",
+  "partName": "Oil Filter",
+  "partNumber": "P2095",
+  "quantity": 1,
+  "repairOrderId": 2,
+  "unitPrice": 100.30
+}

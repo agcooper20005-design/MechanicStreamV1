@@ -1,0 +1,51 @@
+@host = http://localhost:8089
+
+###GET CUSTOMER FROM ID
+GET {{host}}/api/customers
+
+### GET CARS
+GET {{host}}/api/cars
+
+###Test Post
+POST {{host}}/api/customers
+Content-Type: application/json
+
+{
+  "firstName": "John",
+  "lastName": "TESTER"
+}
+
+###TEST CAR POST
+POST {{host}}/api
+Content-Type: application/json
+
+{
+  "year": 2002,
+  "model": ""
+}
+
+###Test Failed Transaction
+POST {{host}}/api/customers/transaction-test
+
+
+### TESTING CREATING CAR
+POST {{host}}/api/cars
+Content-Type: application/json
+
+{
+  "year": 1994,
+  "model": "Toyota",
+  "make": "BLAST",
+  "customerId": 1
+}
+
+### GET Repair Orders
+GET {{host}}/api/repairorder
+
+### TESTING Repair Order Request and Response
+POST {{host}}/api/repairorder
+Content-Type: application/json
+
+{
+
+}
