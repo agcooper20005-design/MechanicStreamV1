@@ -8,6 +8,9 @@ public record CreateRepairOrderRequest (
 
         @NotNull(message = "Car ID is required")
         Long carId,
+        Integer mileageIn,
+
+        String customerComplaint,
 
         String mechanicNotes
         ){

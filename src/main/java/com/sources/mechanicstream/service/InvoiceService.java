@@ -118,10 +118,15 @@ public class InvoiceService {
         return new RepairOrderResponse(repairOrder.getId(),
                 repairOrder.getCustomer().getId(),
                 repairOrder.getCar().getId(),
+                repairOrder.getMileageIn(),
+                repairOrder.getMileageOut(),
                 repairOrder.getStatus(),
                 repairOrder.getCreatedAt(),
                 repairOrder.getCompletedAt(),
                 repairOrder.getUpdatedAt(),
+                repairOrder.getCustomerComplaint(),
+                repairOrder.getDiagnosis(),
+                repairOrder.getRecommendations(),
                 repairOrder.getMechanicNotes());
     }
 

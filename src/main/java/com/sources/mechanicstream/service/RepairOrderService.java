@@ -51,9 +51,11 @@ public class RepairOrderService {
         repairOrder.setStatus(RepairOrderStatus.OPEN);
         repairOrder.setCreatedAt(LocalDateTime.now());
         repairOrder.setCompletedAt(null);
-        repairOrder.setMechanicNotes(request.mechanicNotes());
         repairOrder.setCar(car);
         repairOrder.setCustomer(customer);
+        repairOrder.setMileageIn(request.mileageIn());
+        repairOrder.setCustomerComplaint(request.customerComplaint());
+        repairOrder.setMechanicNotes(request.mechanicNotes());
 
         RepairOrder saved =  repairOrderRepository.save(repairOrder);
 
@@ -142,7 +144,26 @@ public class RepairOrderService {
         RepairOrder repairOrder = repairOrderRepository
                 .findById(repairOrderId)
                 .orElseThrow(() -> new ResourceNotFoundException("RepairOrder not found with id: " + repairOrderId));
-        repairOrder.setMechanicNotes(request.mechanicNotes());
+        /// batch if statments
+
+        if(request.customerComplaint() != null ){
+            repairOrder.setCustomerComplaint(request.customerComplaint());
+        }
+        if (request.diagnosis() != null){
+            repairOrder.setDiagnosis(request.diagnosis());
+        }
+        if(request.recommendations() != null){
+            repairOrder.setRecommendations(request.recommendations());
+        }
+        if(request.mechanicNotes() != null){
+            repairOrder.setMechanicNotes(request.mechanicNotes());
+        }
+        if(request.mileageIn() != null){
+            repairOrder.setMileageIn(request.mileageIn());
+        }
+        if(request.mileageOut() != null){
+            repairOrder.setMileageOut(request.mileageOut());
+        }
 
         return toResponse(repairOrder);
     }
@@ -159,9 +180,7 @@ public class RepairOrderService {
 
     /// get all repair orders that exist
     public List<RepairOrderResponse> getRepairOrders(){
-        if(repairOrderRepository.findAll().isEmpty()) {
-            throw new ResourceNotFoundException("Repair Order Repository Is Empty");
-        }
+
         return repairOrderRepository.findAll()
                 .stream()
                 .map(this::toResponse)
@@ -209,10 +228,15 @@ public class RepairOrderService {
         return new RepairOrderResponse(repairOrder.getId(),
                 repairOrder.getCustomer().getId(),
                 repairOrder.getCar().getId(),
+                repairOrder.getMileageIn(),
+                repairOrder.getMileageOut(),
                 repairOrder.getStatus(),
                 repairOrder.getCreatedAt(),
                 repairOrder.getCompletedAt(),
                 repairOrder.getUpdatedAt(),
+                repairOrder.getCustomerComplaint(),
+                repairOrder.getDiagnosis(),
+                repairOrder.getRecommendations(),
                 repairOrder.getMechanicNotes());
     }
 

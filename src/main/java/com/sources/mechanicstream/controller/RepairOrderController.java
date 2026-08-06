@@ -24,12 +24,16 @@ public class RepairOrderController {
     }
 
     /** PUT  */
-    @PutMapping("/repair-orders/{repairOrderId}")
+
+
+    /** PATCH */
+    /// main patch, update
+    @PatchMapping("/repair-orders/{repairOrderId}")
     public RepairOrderResponse updateRepairOrder(@PathVariable Long repairOrderId, @Valid @RequestBody UpdateRepairOrderRequest request) {
         return repairOrderService.updateRepairOrder(repairOrderId, request);
     }
 
-    /** PATCH */
+
     @PatchMapping("/repair-orders/{orderId}/complete")
     public RepairOrderResponse completeRepairOrder(@PathVariable Long orderId) {
         return repairOrderService.completeRepairOrder(orderId);

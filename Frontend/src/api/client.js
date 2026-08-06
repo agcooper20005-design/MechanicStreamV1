@@ -60,6 +60,12 @@ export const api = {
     orders: (id) => request(`/api/customers/${id}/repairOrders`),
   },
 
+  addresses: {
+    list: () => request("/api/address"),
+    create: (payload) => request("/api/address", json("POST", payload)),
+    update: (id, payload) => request(`/api/address/${id}`, json("PATCH", payload)),
+  },
+
   cars: {
     list: () => request("/api/cars"),
     get: (id) => request(`/api/cars/${id}`),
@@ -73,7 +79,7 @@ export const api = {
     list: () => request("/api/repair-orders"),
     get: (id) => request(`/api/repair-orders/${id}`),
     create: (payload) => request("/api/repair-orders", json("POST", payload)),
-    update: (id, payload) => request(`/api/repair-orders/${id}`, json("PUT", payload)),
+    update: (id, payload) => request(`/api/repair-orders/${id}`, json("PATCH", payload)),
     remove: (id) => request(`/api/repair-orders/${id}`, { method: "DELETE" }),
     changeStatus: (id, action) =>
       request(`/api/repair-orders/${id}/${action}`, { method: "PATCH" }),

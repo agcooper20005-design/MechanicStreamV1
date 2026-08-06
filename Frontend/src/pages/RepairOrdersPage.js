@@ -18,6 +18,17 @@ import {
   vehicleName,
 } from "../utils/formatters";
 
+const blankOrder = {
+  customerId: "",
+  carId: "",
+  mileageIn: "",
+  mileageOut: "",
+  customerComplaint: "",
+  diagnosis: "",
+  recommendations: "",
+  mechanicNotes: "",
+};
+
 export default function RepairOrdersPage({ onDirtyChange, onNavigate }) {
   const {
     customers,
@@ -37,7 +48,7 @@ export default function RepairOrdersPage({ onDirtyChange, onNavigate }) {
   const [statusFilter, setStatusFilter] = useState("ALL");
   const [tab, setTab] = useState("summary");
   const [editorMode, setEditorMode] = useState(null);
-  const [form, setForm] = useState({ customerId: "", carId: "", mechanicNotes: "" });
+  const [form, setForm] = useState(blankOrder);
   const [dirty, setDirty] = useState(false);
   const [childDirty, setChildDirty] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -68,7 +79,7 @@ export default function RepairOrdersPage({ onDirtyChange, onNavigate }) {
       if (statusFilter !== "ALL" && order.status !== statusFilter) return false;
       if (!term) return true;
       return normalizeText(
-        `ro-${order.id} ${customerName(customerMap.get(order.customerId))} ${vehicleName(carMap.get(order.carId))} ${order.mechanicNotes}`,
+        `ro-${order.id} ${customerName(customerMap.get(order.customerId))} ${vehicleName(carMap.get(order.carId))} ${order.customerComplaint} ${order.diagnosis} ${order.recommendations} ${order.mechanicNotes}`,
       ).includes(term);
     });
   }, [orders, search, statusFilter, customerMap, carMap]);
@@ -88,6 +99,11 @@ export default function RepairOrdersPage({ onDirtyChange, onNavigate }) {
     setForm({
       customerId,
       carId: activeCarId || firstCar?.id || "",
+      mileageIn: "",
+      mileageOut: "",
+      customerComplaint: "",
+      diagnosis: "",
+      recommendations: "",
       mechanicNotes: "",
     });
     setDirty(false);
@@ -95,16 +111,21 @@ export default function RepairOrdersPage({ onDirtyChange, onNavigate }) {
     setEditorMode("create");
   };
 
-  const openNotes = () => {
+  const openDetails = () => {
     if (!activeOrder) return;
     setForm({
       customerId: activeOrder.customerId,
       carId: activeOrder.carId,
+      mileageIn: activeOrder.mileageIn ?? "",
+      mileageOut: activeOrder.mileageOut ?? "",
+      customerComplaint: activeOrder.customerComplaint || "",
+      diagnosis: activeOrder.diagnosis || "",
+      recommendations: activeOrder.recommendations || "",
       mechanicNotes: activeOrder.mechanicNotes || "",
     });
     setDirty(false);
     setFormError("");
-    setEditorMode("notes");
+    setEditorMode("details");
   };
 
   const changeField = (field, value) => {
@@ -133,13 +154,27 @@ export default function RepairOrdersPage({ onDirtyChange, onNavigate }) {
       setFormError("A customer and one of that customer's vehicles are required.");
       return;
     }
+    const mileageIn = form.mileageIn === "" ? null : Number(form.mileageIn);
+    const mileageOut = form.mileageOut === "" ? null : Number(form.mileageOut);
+    if (mileageIn !== null && (!Number.isInteger(mileageIn) || mileageIn < 0)) {
+      setFormError("Mileage in must be a whole number of zero or greater.");
+      return;
+    }
+    if (mileageOut !== null && (!Number.isInteger(mileageOut) || mileageOut < 0)) {
+      setFormError("Mileage out must be a whole number of zero or greater.");
+      return;
+    }
+    if (mileageIn !== null && mileageOut !== null && mileageOut < mileageIn) {
+      setFormError("Mileage out cannot be lower than mileage in.");
+      return;
+    }
     const approved = await confirmAction({
-      title: creating ? "Create this repair order?" : "Update mechanic notes?",
+      title: creating ? "Create this repair order?" : "Update repair-order details?",
       message: creating
         ? `Create a repair order for ${customerName(customerMap.get(Number(form.customerId)))} and ${vehicleName(carMap.get(Number(form.carId)))}?`
-        : `Save the mechanic notes on RO-${activeOrder.id}?`,
+        : `Save the work details on RO-${activeOrder.id}?`,
       details: "This API request is sent only after confirmation.",
-      confirmLabel: creating ? "Create repair order" : "Save notes",
+      confirmLabel: creating ? "Create repair order" : "Save details",
     });
     if (!approved) return;
 
@@ -149,10 +184,19 @@ export default function RepairOrdersPage({ onDirtyChange, onNavigate }) {
         await createOrder({
           customerId: Number(form.customerId),
           carId: Number(form.carId),
+          mileageIn,
+          customerComplaint: form.customerComplaint.trim(),
           mechanicNotes: form.mechanicNotes.trim(),
         });
       } else {
-        await updateOrder(activeOrder.id, { mechanicNotes: form.mechanicNotes.trim() });
+        await updateOrder(activeOrder.id, {
+          mileageIn,
+          mileageOut,
+          customerComplaint: form.customerComplaint.trim(),
+          diagnosis: form.diagnosis.trim(),
+          recommendations: form.recommendations.trim(),
+          mechanicNotes: form.mechanicNotes.trim(),
+        });
       }
       setDirty(false);
       setEditorMode(null);
@@ -213,7 +257,7 @@ export default function RepairOrdersPage({ onDirtyChange, onNavigate }) {
             <button className="button button-primary" type="button" onClick={openCreate} disabled={!customers.length || !cars.length}><Icon name="plus" size={16} />New order</button>
           </div>
           <div className="filter-stack">
-            <label className="search-box"><Icon name="search" size={17} /><span className="sr-only">Search repair orders</span><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search order, customer, vehicle, or notes" /></label>
+            <label className="search-box"><Icon name="search" size={17} /><span className="sr-only">Search repair orders</span><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search order, customer, vehicle, or work details" /></label>
             <label className="select-filter"><span>Status</span><select value={statusFilter} onChange={(event) => setStatusFilter(event.target.value)}><option value="ALL">All statuses</option>{Object.entries(STATUS_LABELS).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></label>
           </div>
           <div className="order-record-list">
@@ -250,11 +294,28 @@ export default function RepairOrdersPage({ onDirtyChange, onNavigate }) {
                       <div><small>Customer</small><strong>{customerName(customerMap.get(activeOrder.customerId))}</strong><span>#{activeOrder.customerId}</span></div>
                       <div><small>Vehicle</small><strong>{vehicleName(carMap.get(activeOrder.carId))}</strong><span>#{activeOrder.carId}</span></div>
                       <div><small>Created</small><strong>{dateTime(activeOrder.createdAt)}</strong><span>{activeOrder.completedAt ? `Completed ${dateTime(activeOrder.completedAt)}` : "Not completed"}</span></div>
+                      <div><small>Mileage in</small><strong>{activeOrder.mileageIn != null ? activeOrder.mileageIn.toLocaleString() : "Not recorded"}</strong><span>miles</span></div>
+                      <div><small>Mileage out</small><strong>{activeOrder.mileageOut != null ? activeOrder.mileageOut.toLocaleString() : "Not recorded"}</strong><span>miles</span></div>
                     </div>
 
                     <section className="notes-section">
-                      <div className="section-heading"><h3>Mechanic notes</h3><button className="button button-secondary button-small" type="button" onClick={openNotes}><Icon name="edit" size={14} />Edit notes</button></div>
+                      <div className="section-heading"><h3>Customer complaint</h3><button className="button button-secondary button-small" type="button" onClick={openDetails}><Icon name="edit" size={14} />Edit work details</button></div>
+                      <p>{activeOrder.customerComplaint || "No customer complaint has been recorded."}</p>
+                    </section>
+
+                    <section className="notes-section">
+                      <div className="section-heading"><h3>Diagnosis</h3></div>
+                      <p>{activeOrder.diagnosis || "No diagnosis has been recorded."}</p>
+                    </section>
+
+                    <section className="notes-section">
+                      <div className="section-heading"><h3>Mechanic notes</h3></div>
                       <p>{activeOrder.mechanicNotes || "No mechanic notes have been recorded."}</p>
+                    </section>
+
+                    <section className="notes-section">
+                      <div className="section-heading"><h3>Recommendations</h3></div>
+                      <p>{activeOrder.recommendations || "No recommendations have been recorded."}</p>
                     </section>
 
                     <section>
@@ -287,7 +348,7 @@ export default function RepairOrdersPage({ onDirtyChange, onNavigate }) {
       </div>
 
       {editorMode && (
-        <Modal title={editorMode === "create" ? "Create repair order" : "Update mechanic notes"} eyebrow={editorMode === "create" ? "New work order" : `Repair order RO-${activeOrder?.id}`} onClose={closeEditor} width="large">
+        <Modal title={editorMode === "create" ? "Create repair order" : "Update work details"} eyebrow={editorMode === "create" ? "New work order" : `Repair order RO-${activeOrder?.id}`} onClose={closeEditor} width="large">
           <SafeForm className="form-stack">
             <p className="form-note">Pressing Enter cannot send this request. Use the review button after checking all information.</p>
             {editorMode === "create" && (
@@ -296,7 +357,14 @@ export default function RepairOrdersPage({ onDirtyChange, onNavigate }) {
                 <label>Vehicle<select value={form.carId} onChange={(event) => changeField("carId", event.target.value)}><option value="">{form.customerId ? "Choose vehicle" : "Select customer first"}</option>{eligibleCars.map((car) => <option key={car.id} value={car.id}>{vehicleName(car)}</option>)}</select></label>
               </div>
             )}
-            <label>Mechanic notes<textarea rows="7" value={form.mechanicNotes} onChange={(event) => changeField("mechanicNotes", event.target.value)} placeholder="Customer concern, diagnosis, work performed, or next steps…" /></label>
+            <div className="form-grid">
+              <label>Mileage in<input type="number" min="0" step="1" value={form.mileageIn} onChange={(event) => changeField("mileageIn", event.target.value)} placeholder="Current mileage" /></label>
+              {editorMode !== "create" && <label>Mileage out<input type="number" min="0" step="1" value={form.mileageOut} onChange={(event) => changeField("mileageOut", event.target.value)} placeholder="Completion mileage" /></label>}
+            </div>
+            <label>Customer complaint<textarea rows="4" value={form.customerComplaint} onChange={(event) => changeField("customerComplaint", event.target.value)} placeholder="Describe the customer's concern in their own words…" /></label>
+            {editorMode !== "create" && <label>Diagnosis<textarea rows="4" value={form.diagnosis} onChange={(event) => changeField("diagnosis", event.target.value)} placeholder="Record the technician's diagnosis…" /></label>}
+            <label>Mechanic notes<textarea rows="5" value={form.mechanicNotes} onChange={(event) => changeField("mechanicNotes", event.target.value)} placeholder="Work performed, observations, parts needed, or next steps…" /></label>
+            {editorMode !== "create" && <label>Recommendations<textarea rows="4" value={form.recommendations} onChange={(event) => changeField("recommendations", event.target.value)} placeholder="Recommended maintenance or future repairs…" /></label>}
             {formError && <p className="form-error" role="alert">{formError}</p>}
             <div className="form-actions"><button className="button button-secondary" type="button" onClick={closeEditor}>Cancel</button><button className="button button-primary" type="button" disabled={saving} onClick={saveOrder}>{saving ? "Working…" : editorMode === "create" ? "Review and create" : "Review and save"}</button></div>
           </SafeForm>

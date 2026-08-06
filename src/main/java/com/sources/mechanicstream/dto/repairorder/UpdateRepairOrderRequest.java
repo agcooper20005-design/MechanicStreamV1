@@ -1,10 +1,13 @@
 package com.sources.mechanicstream.dto.repairorder;
 
-import jakarta.validation.constraints.NotBlank;
-
 public record UpdateRepairOrderRequest(
+        Integer mileageIn,
+        Integer mileageOut,
 
-        @NotBlank
+
+        String customerComplaint,
+        String diagnosis,
+        String recommendations,
         String mechanicNotes
 
 ) {

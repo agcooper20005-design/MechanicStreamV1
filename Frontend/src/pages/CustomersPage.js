@@ -13,11 +13,16 @@ const blankCustomer = {
   lastName: "",
   phoneNumber: "",
   email: "",
+  street: "",
+  city: "",
+  state: "",
+  zip: "",
 };
 
 export default function CustomersPage({ onDirtyChange, onNavigate }) {
   const {
     customers,
+    addresses,
     cars,
     orders,
     activeCustomer,
@@ -42,14 +47,17 @@ export default function CustomersPage({ onDirtyChange, onNavigate }) {
   const filtered = useMemo(() => {
     const term = normalizeText(search);
     if (!term) return customers;
-    return customers.filter((customer) =>
-      normalizeText(`${customerName(customer)} ${customer.phoneNumber} ${customer.email} ${customer.id}`)
-        .includes(term)
-    );
-  }, [customers, search]);
+    return customers.filter((customer) => {
+      const address = addresses.find((item) => item.customerId === customer.id);
+      return normalizeText(
+        `${customerName(customer)} ${customer.phoneNumber} ${customer.email} ${customer.id} ${address?.street} ${address?.city} ${address?.state} ${address?.zip}`,
+      ).includes(term);
+    });
+  }, [customers, addresses, search]);
 
   const customerCars = cars.filter((car) => car.customerId === activeCustomer?.id);
   const customerOrders = orders.filter((order) => order.customerId === activeCustomer?.id);
+  const activeAddress = addresses.find((address) => address.customerId === activeCustomer?.id) || null;
 
   const changeField = (field, value) => {
     setForm((current) => ({ ...current, [field]: value }));
@@ -71,6 +79,10 @@ export default function CustomersPage({ onDirtyChange, onNavigate }) {
       lastName: activeCustomer.lastName || "",
       phoneNumber: activeCustomer.phoneNumber || "",
       email: activeCustomer.email || "",
+      street: activeAddress?.street || "",
+      city: activeAddress?.city || "",
+      state: activeAddress?.state || "",
+      zip: activeAddress?.zip || "",
     });
     setDirty(false);
     setFormError("");
@@ -96,6 +108,14 @@ export default function CustomersPage({ onDirtyChange, onNavigate }) {
       setFormError("First and last name are required.");
       return;
     }
+    if (!form.street.trim() || !form.city.trim() || !form.state.trim() || !form.zip.trim()) {
+      setFormError("Street, city, state, and ZIP code are required.");
+      return;
+    }
+    if (form.state.trim().length !== 2) {
+      setFormError("State must use a two-letter abbreviation, such as GA.");
+      return;
+    }
     const isCreate = editorMode === "create";
     const approved = await confirmAction({
       title: isCreate ? "Create this customer?" : "Update this customer?",
@@ -115,6 +135,10 @@ export default function CustomersPage({ onDirtyChange, onNavigate }) {
         lastName: form.lastName.trim(),
         phoneNumber: form.phoneNumber.trim(),
         email: form.email.trim(),
+        street: form.street.trim(),
+        city: form.city.trim(),
+        state: form.state.trim().toUpperCase(),
+        zip: form.zip.trim(),
       };
       if (isCreate) await createCustomer(payload);
       else await updateCustomer(activeCustomer.id, payload);
@@ -158,7 +182,7 @@ export default function CustomersPage({ onDirtyChange, onNavigate }) {
           <label className="search-box">
             <Icon name="search" size={17} />
             <span className="sr-only">Search customers</span>
-            <input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search name, phone, email, or ID" />
+            <input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search name, contact, address, or ID" />
           </label>
           <div className="record-list">
             {filtered.length === 0 ? (
@@ -185,7 +209,16 @@ export default function CustomersPage({ onDirtyChange, onNavigate }) {
             <>
               <div className="detail-hero">
                 <span className="large-avatar">{activeCustomer.firstName?.[0]}{activeCustomer.lastName?.[0]}</span>
-                <div><p className="eyebrow">Customer #{activeCustomer.id}</p><h2>{customerName(activeCustomer)}</h2><p>{activeCustomer.phoneNumber || "No phone number"} · {activeCustomer.email || "No email address"}</p></div>
+                <div>
+                  <p className="eyebrow">Customer #{activeCustomer.id}</p>
+                  <h2>{customerName(activeCustomer)}</h2>
+                  <p>{activeCustomer.phoneNumber || "No phone number"} · {activeCustomer.email || "No email address"}</p>
+                  <p>
+                    {activeAddress
+                      ? `${activeAddress.street}, ${activeAddress.city}, ${activeAddress.state} ${activeAddress.zip}`
+                      : "No address recorded"}
+                  </p>
+                </div>
                 <div className="detail-actions">
                   <button className="button button-secondary" type="button" onClick={openEdit}><Icon name="edit" size={15} />Edit</button>
                   <button className="button button-danger-ghost" type="button" onClick={remove}><Icon name="trash" size={15} />Delete</button>
@@ -234,7 +267,13 @@ export default function CustomersPage({ onDirtyChange, onNavigate }) {
             </div>
             <label>Phone number<input type="tel" value={form.phoneNumber} onChange={(event) => changeField("phoneNumber", event.target.value)} /></label>
             <label>Email address<input type="email" value={form.email} onChange={(event) => changeField("email", event.target.value)} /></label>
-            {editorMode === "create" && <p className="field-help">The API creates the name first, then applies optional contact information through the customer update endpoint.</p>}
+            <label>Street address<input value={form.street} onChange={(event) => changeField("street", event.target.value)} autoComplete="street-address" /></label>
+            <div className="form-grid">
+              <label>City<input value={form.city} onChange={(event) => changeField("city", event.target.value)} autoComplete="address-level2" /></label>
+              <label>State<input value={form.state} maxLength={2} onChange={(event) => changeField("state", event.target.value.toUpperCase())} autoComplete="address-level1" placeholder="GA" /></label>
+            </div>
+            <label>ZIP code<input value={form.zip} onChange={(event) => changeField("zip", event.target.value)} inputMode="numeric" autoComplete="postal-code" placeholder="30000" /></label>
+            {editorMode === "create" && <p className="field-help">The customer is created first so the returned customer ID can be attached to the address.</p>}
             {formError && <p className="form-error" role="alert">{formError}</p>}
             <div className="form-actions">
               <button className="button button-secondary" type="button" onClick={closeEditor}>Cancel</button>

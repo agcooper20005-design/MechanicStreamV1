@@ -26,6 +26,7 @@ function savedNumber(key) {
 export function AppProvider({ children }) {
   const { notify } = useUI();
   const [customers, setCustomers] = useState([]);
+  const [addresses, setAddresses] = useState([]);
   const [cars, setCars] = useState([]);
   const [orders, setOrders] = useState([]);
   const [laborItems, setLaborItems] = useState([]);
@@ -40,13 +41,15 @@ export function AppProvider({ children }) {
     quiet ? setSyncing(true) : setLoading(true);
     if (!quiet) setError(null);
     try {
-      const [customerData, carData, orderData, laborData] = await Promise.all([
+      const [customerData, addressData, carData, orderData, laborData] = await Promise.all([
         api.customers.list(),
+        api.addresses.list(),
         api.cars.list(),
         api.orders.list(),
         api.labor.list(),
       ]);
       setCustomers(customerData || []);
+      setAddresses(addressData || []);
       setCars(carData || []);
       setOrders(orderData || []);
       setLaborItems(laborData || []);
@@ -137,7 +140,15 @@ export function AppProvider({ children }) {
         email: payload.email || "",
       });
     }
+    const createdAddress = await api.addresses.create({
+      customerId: finalRecord.id,
+      street: payload.street,
+      city: payload.city,
+      state: payload.state,
+      zip: payload.zip,
+    });
     setCustomers((current) => mergeRecord(current, finalRecord));
+    setAddresses((current) => mergeRecord(current, createdAddress));
     selectCustomer(finalRecord.id);
     notify("Customer created and selected.");
     loadCore(true);
@@ -145,16 +156,33 @@ export function AppProvider({ children }) {
   }, [loadCore, notify, selectCustomer]);
 
   const updateCustomer = useCallback(async (id, payload) => {
-    const updated = await api.customers.update(id, payload);
+    const updated = await api.customers.update(id, {
+      firstName: payload.firstName,
+      lastName: payload.lastName,
+      phoneNumber: payload.phoneNumber,
+      email: payload.email,
+    });
+    const addressPayload = {
+      street: payload.street,
+      city: payload.city,
+      state: payload.state,
+      zip: payload.zip,
+    };
+    const existingAddress = addresses.find((address) => address.customerId === id);
+    const savedAddress = existingAddress
+      ? await api.addresses.update(existingAddress.id, addressPayload)
+      : await api.addresses.create({ customerId: id, ...addressPayload });
     setCustomers((current) => mergeRecord(current, updated));
+    setAddresses((current) => mergeRecord(current, savedAddress));
     notify("Customer changes saved.");
     loadCore(true);
     return updated;
-  }, [loadCore, notify]);
+  }, [addresses, loadCore, notify]);
 
   const deleteCustomer = useCallback(async (id) => {
     await api.customers.remove(id);
     setCustomers((current) => current.filter((item) => item.id !== id));
+    setAddresses((current) => current.filter((item) => item.customerId !== id));
     setCars((current) => current.filter((item) => item.customerId !== id));
     setOrders((current) => current.filter((item) => item.customerId !== id));
     if (activeCustomerId === id) selectCustomer(null);
@@ -227,6 +255,7 @@ export function AppProvider({ children }) {
 
   const value = useMemo(() => ({
     customers,
+    addresses,
     cars,
     orders,
     laborItems,
@@ -256,7 +285,7 @@ export function AppProvider({ children }) {
     deleteOrder,
     setLaborItems,
   }), [
-    customers, cars, orders, laborItems, loading, syncing, error, loadCore,
+    customers, addresses, cars, orders, laborItems, loading, syncing, error, loadCore,
     activeCustomerId, activeCarId, activeOrderId, activeCustomer, activeCar, activeOrder,
     selectCustomer, selectCar, selectOrder, createCustomer, updateCustomer,
     deleteCustomer, createCar, updateCar, deleteCar, createOrder, updateOrder,

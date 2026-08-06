@@ -7,8 +7,8 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 public class MechanicStream {
     public static void main(String[] args) {
         SpringApplication.run(MechanicStream.class, args);
-        System.out.println("Host: " + "http://localhost:8089");
-        System.out.println("SwaggerUi: " + "http://localhost:8089/swagger-ui/index.html");
+        System.out.println("Host: " + "http://localhost:8090");
+        System.out.println("SwaggerUi: " + "http://localhost:8090/swagger-ui/index.html");
     }
 
 }
