@@ -36,6 +36,11 @@ public class CarService {
         car.setYear(request.year());
         car.setMake(request.make());
         car.setModel(request.model());
+        car.setTrim(request.trim());
+        car.setVin(request.vin());
+        car.setLicensePlate(request.licensePlate());
+        car.setMileage(request.mileage());
+        car.setColor(request.color());
         car.setCustomer(customer);
 
         Car saved =  carRepository.save(car);
